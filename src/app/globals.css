@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  background: radial-gradient(circle at top, #f7f2eb 0%, #f3e8dc 45%, #efe1d2 100%);
+  color: #1d1b16;
+  min-height: 100vh;
+}
+
+.bg-blossom {
+  background: linear-gradient(135deg, rgba(241, 209, 180, 0.6), rgba(230, 167, 122, 0.55));
+}
+
+.glow-card {
+  background: rgba(255, 255, 255, 0.76);
+  backdrop-filter: blur(18px);
+}
+
+.text-balance {
+  text-wrap: balance;
+}
