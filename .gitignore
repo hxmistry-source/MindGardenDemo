@@ -1,11 +1,14 @@
-node_modules
-.env
-dist
-build
-.DS_Store
+# Dependencies
 node_modules/
-.env
+
+# Next.js build output
 .next/
 dist/
 build/
+
+# Env files
+.env*
+!.env.local.example
+
+# OS junk
 .DS_Store
