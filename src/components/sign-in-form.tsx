@@ -14,7 +14,12 @@ export default function SignInForm() {
     setStatus(null);
 
     const supabase = createBrowserSupabase();
-    const { error } = await supabase.auth.signInWithOtp({ email });
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
 
     if (error) {
       setStatus(error.message);

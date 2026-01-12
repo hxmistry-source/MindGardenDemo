@@ -1,11 +1,13 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { completeOnboarding } from "@/app/onboarding/actions";
 import { seedOptions } from "@/lib/garden";
-import { createServerSupabase } from "@/lib/supabase/server";
+import { createServerSupabaseReadOnly } from "@/lib/supabase/server";
 import SignOutButton from "@/components/sign-out-button";
+import TimezoneField from "@/app/onboarding/timezone-field";
 
 export default async function OnboardingPage() {
-  const supabase = createServerSupabase();
+  const supabase = createServerSupabaseReadOnly();
   const { data } = await supabase.auth.getSession();
 
   if (!data.session) {
@@ -24,12 +26,25 @@ export default async function OnboardingPage() {
 
   return (
     <section className="flex flex-1 flex-col gap-10">
-      <header className="flex items-center justify-between">
+      <header className="flex items-center justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-ink/50">Onboarding</p>
+          <div className="flex flex-col gap-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-ink/50">Onboarding</p>
+            <div className="h-1.5 w-32 overflow-hidden rounded-full bg-ink/10">
+              <div className="h-full w-full rounded-full bg-moss" />
+            </div>
+          </div>
           <h1 className="font-[var(--font-fraunces)] text-4xl">Plant your first seed</h1>
         </div>
-        <SignOutButton />
+        <div className="flex items-center gap-4">
+          <Link
+            href="/onboarding/welcome"
+            className="text-xs font-semibold uppercase tracking-[0.3em] text-ink/50 transition hover:text-ink"
+          >
+            Back to welcome
+          </Link>
+          <SignOutButton />
+        </div>
       </header>
 
       <form
@@ -61,6 +76,7 @@ export default async function OnboardingPage() {
             required
             className="mt-4 w-full max-w-xs rounded-xl border border-ink/10 bg-white px-4 py-3 text-base shadow-sm"
           />
+          <TimezoneField />
         </div>
 
         <button

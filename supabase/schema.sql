@@ -6,10 +6,13 @@ create table if not exists public.profiles (
   email text,
   created_at timestamp with time zone default now(),
   reminder_time text,
+  timezone text,
   current_seed_type text,
+  seed_variant text,
   current_stage integer default 0,
   streak_count integer default 0,
-  last_action_date date
+  last_action_date date,
+  grace_used_at timestamp with time zone
 );
 
 create table if not exists public.actions (
@@ -18,6 +21,7 @@ create table if not exists public.actions (
   action_type text not null,
   mood_score integer,
   text_input text,
+  action_variant text,
   created_at timestamp with time zone default now()
 );
 

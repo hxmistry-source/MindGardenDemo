@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import TopNav from "@/components/top-nav";
 import SignOutButton from "@/components/sign-out-button";
-import { createServerSupabase } from "@/lib/supabase/server";
+import { createServerSupabaseReadOnly } from "@/lib/supabase/server";
 import { getStageName } from "@/lib/garden";
 
 function getLastSevenDays() {
@@ -16,7 +16,7 @@ function getLastSevenDays() {
 }
 
 export default async function StatsPage() {
-  const supabase = createServerSupabase();
+  const supabase = createServerSupabaseReadOnly();
   const { data: sessionData } = await supabase.auth.getSession();
 
   if (!sessionData.session) {
@@ -30,7 +30,7 @@ export default async function StatsPage() {
     .single();
 
   if (!profile?.current_seed_type) {
-    redirect("/onboarding");
+    redirect("/onboarding/welcome");
   }
 
   const { data: actions } = await supabase

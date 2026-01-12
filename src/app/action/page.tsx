@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import TopNav from "@/components/top-nav";
 import SignOutButton from "@/components/sign-out-button";
-import { getDailyAction, getTodayRange } from "@/lib/garden";
-import { createServerSupabase } from "@/lib/supabase/server";
+import { getPersonalizedAction, getSeedVariant, getTodayRange } from "@/lib/garden";
+import { createServerSupabaseReadOnly } from "@/lib/supabase/server";
 import { submitDailyAction } from "@/app/action/actions";
 
 export default async function ActionPage({
@@ -10,7 +10,7 @@ export default async function ActionPage({
 }: {
   searchParams: { done?: string };
 }) {
-  const supabase = createServerSupabase();
+  const supabase = createServerSupabaseReadOnly();
   const { data: sessionData } = await supabase.auth.getSession();
 
   if (!sessionData.session) {
@@ -19,15 +19,28 @@ export default async function ActionPage({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("current_seed_type")
+    .select("current_seed_type, grace_used_at, seed_variant")
     .eq("id", sessionData.session.user.id)
     .single();
 
   if (!profile?.current_seed_type) {
-    redirect("/onboarding");
+    redirect("/onboarding/welcome");
   }
 
-  const todayAction = getDailyAction(new Date());
+  const { data: lastMoodEntry } = await supabase
+    .from("actions")
+    .select("mood_score")
+    .eq("user_id", sessionData.session.user.id)
+    .not("mood_score", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const todayAction = getPersonalizedAction(
+    new Date(),
+    profile.current_seed_type,
+    lastMoodEntry?.mood_score ?? null,
+  );
   const { start, end } = getTodayRange();
 
   const { data: todayEntries } = await supabase
@@ -38,6 +51,9 @@ export default async function ActionPage({
     .lte("created_at", end.toISOString());
 
   const alreadyDone = (todayEntries?.length ?? 0) > 0 || searchParams.done === "1";
+  const seedVariant = getSeedVariant(profile.current_seed_type, profile.seed_variant);
+  const graceUsedAt = profile.grace_used_at ? new Date(profile.grace_used_at) : null;
+  const graceUsedLabel = graceUsedAt ? graceUsedAt.toLocaleDateString() : null;
 
   return (
     <section className="flex flex-1 flex-col gap-10">
@@ -61,6 +77,7 @@ export default async function ActionPage({
           ) : (
             <form action={submitDailyAction} className="mt-6 flex flex-col gap-4">
               <input type="hidden" name="actionType" value={todayAction.type} />
+              <input type="hidden" name="actionVariant" value={todayAction.actionVariant} />
               {todayAction.type === "mood" ? (
                 <label className="flex flex-col gap-3">
                   <span className="text-sm font-semibold text-ink/70">Mood today (1-5)</span>
@@ -75,7 +92,10 @@ export default async function ActionPage({
                 </label>
               ) : null}
 
-              {todayAction.type === "gratitude" || todayAction.type === "reflection" ? (
+              {todayAction.type === "gratitude" ||
+              todayAction.type === "reflection" ||
+              todayAction.type === "goal" ||
+              todayAction.type === "kindness" ? (
                 <label className="flex flex-col gap-3">
                   <span className="text-sm font-semibold text-ink/70">Write a short note</span>
                   <textarea
@@ -86,6 +106,60 @@ export default async function ActionPage({
                     required
                   />
                 </label>
+              ) : null}
+
+              {todayAction.type === "body_scan" ? (
+                <div className="rounded-2xl border border-ink/10 bg-white p-4">
+                  <p className="text-sm font-semibold text-ink/70">Name three sensations</p>
+                  <div className="mt-3 grid gap-3">
+                    <input
+                      type="text"
+                      name="bodyScan1"
+                      className="w-full rounded-xl border border-ink/10 bg-white px-3 py-2 text-sm"
+                      placeholder="e.g. Warm shoulders"
+                      required
+                    />
+                    <input
+                      type="text"
+                      name="bodyScan2"
+                      className="w-full rounded-xl border border-ink/10 bg-white px-3 py-2 text-sm"
+                      placeholder="e.g. Lightness in chest"
+                      required
+                    />
+                    <input
+                      type="text"
+                      name="bodyScan3"
+                      className="w-full rounded-xl border border-ink/10 bg-white px-3 py-2 text-sm"
+                      placeholder="e.g. Tingling hands"
+                      required
+                    />
+                  </div>
+                </div>
+              ) : null}
+
+              {todayAction.type === "reframe" ? (
+                <div className="rounded-2xl border border-ink/10 bg-white p-4">
+                  <label className="flex flex-col gap-3">
+                    <span className="text-sm font-semibold text-ink/70">Stressful thought</span>
+                    <textarea
+                      name="reframeStress"
+                      rows={3}
+                      className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm shadow-sm"
+                      placeholder="What feels heavy right now?"
+                      required
+                    />
+                  </label>
+                  <label className="mt-4 flex flex-col gap-3">
+                    <span className="text-sm font-semibold text-ink/70">Gentler reframe</span>
+                    <textarea
+                      name="reframeShift"
+                      rows={3}
+                      className="w-full rounded-2xl border border-ink/10 bg-white px-4 py-3 text-sm shadow-sm"
+                      placeholder="How can you soften it?"
+                      required
+                    />
+                  </label>
+                </div>
               ) : null}
 
               {todayAction.type === "breath" ? (
@@ -108,14 +182,18 @@ export default async function ActionPage({
           <div className="rounded-3xl border border-white/70 bg-white/80 p-6">
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-ink/50">Growth reminder</p>
             <p className="mt-3 text-sm text-ink/70">
-              Each action grows your {profile.current_seed_type.toLowerCase()} garden. Keep your streak alive to reach the
-              next stage.
+              Each action grows your {profile.current_seed_type.toLowerCase()} garden. Your variant is{" "}
+              <span className="font-semibold text-ink">{seedVariant.label}</span> with a {seedVariant.palette.toLowerCase()}{" "}
+              palette.
             </p>
           </div>
           <div className="rounded-3xl border border-white/70 bg-white/80 p-6">
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-ink/50">Streak policy</p>
             <p className="mt-3 text-sm text-ink/70">
-              Miss a day and your streak resets. No pressure, just gentle momentum.
+              You have one grace day per 7 days.{" "}
+              {graceUsedLabel
+                ? `Grace day used on ${graceUsedLabel}.`
+                : "Grace day is available if you miss a day."}
             </p>
           </div>
         </div>

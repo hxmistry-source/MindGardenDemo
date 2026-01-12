@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import SignInForm from "@/components/sign-in-form";
-import { createServerSupabase } from "@/lib/supabase/server";
+import { createServerSupabaseReadOnly } from "@/lib/supabase/server";
 
 export default async function LandingPage() {
-  const supabase = createServerSupabase();
+  const supabase = createServerSupabaseReadOnly();
   const { data } = await supabase.auth.getSession();
 
   if (data.session) {
@@ -17,7 +17,7 @@ export default async function LandingPage() {
     if (profile?.current_seed_type) {
       redirect("/home");
     } else {
-      redirect("/onboarding");
+      redirect("/onboarding/welcome");
     }
   }
 
