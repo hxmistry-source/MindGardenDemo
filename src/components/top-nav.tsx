@@ -2,8 +2,9 @@ import Link from "next/link";
 
 const links = [
   { href: "/home", label: "Garden" },
-  { href: "/action", label: "Today's Action" },
-  { href: "/stats", label: "Progress" },
+  { href: "/action", label: "Actions" },
+  { href: "/insights", label: "Insights" },
+  { href: "/profile", label: "Profile" },
 ];
 
 export default function TopNav() {
